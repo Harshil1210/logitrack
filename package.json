@@ -1,0 +1,30 @@
+{
+  "name": "logitrack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:all": "concurrently \"pnpm --filter @logitrack/auth-service dev\" \"pnpm --filter @logitrack/order-service dev\" \"pnpm --filter @logitrack/notification-service dev\" \"pnpm --filter @logitrack/api-gateway dev\"",
+    "dev:auth": "pnpm --filter @logitrack/auth-service dev",
+    "dev:order": "pnpm --filter @logitrack/order-service dev",
+    "dev:notification": "pnpm --filter @logitrack/notification-service dev",
+    "dev:gateway": "pnpm --filter @logitrack/api-gateway dev",
+    "build": "pnpm -r build",
+    "install:all": "pnpm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.1",
+  "dependencies": {
+    "@types/node": "^24.3.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "nodemon": "^3.1.10",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

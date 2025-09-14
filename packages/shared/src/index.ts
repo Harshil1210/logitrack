@@ -19,3 +19,6 @@ export {
   authLimiter,
   publicLimiter,
 } from "./middleware/rateLimiter";
+
+// Utils
+export { sanitizeString, sanitizeObjectId, sanitizeObject, sanitizeForLog } from './utils/sanitizer';

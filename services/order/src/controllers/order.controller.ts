@@ -10,16 +10,11 @@ import {
 import { appEventEmitter } from "../events/eventEmitter";
 import { sanitizeObjectId, sanitizeObject, AppError } from "@logitrack/shared";
 
+
 export const createOrder = async (req: any, res: Response) => {
   try {
     const userId = req.user.userId;
-    const order = await createOrderService(req.body, userId);
-    const data = {
-      orderId: order._id,
-      userEmail: req.user.email,
-      status: "PLACED",
-    };
-    appEventEmitter.emit("orderCreated", data);
+    const order = await createOrderService(req.body, userId, req.user.email);
     res.status(201).json({ message: "Order placed successfully", order });
   } catch (err: any) {
     res
@@ -59,11 +54,10 @@ export const getOrderById = async (
   }
 };
 
-export const cancelOrder = async (req: Request, res: Response) => {
+export const cancelOrder = async (req: any, res: Response) => {
   try {
-    const order = await cancelOrderService(req.params.id);
+    const order = await cancelOrderService(req.params.id, req.user.email);
     if (!order) return res.status(404).json({ message: "Order not found" });
-
     res.status(200).json({ message: "Order cancelled" });
   } catch (err: any) {
     res.status(500).json({
@@ -73,9 +67,9 @@ export const cancelOrder = async (req: Request, res: Response) => {
   }
 };
 
-export const updateOrderStatus = async (req: Request, res: Response) => {
+export const updateOrderStatus = async (req: any, res: Response) => {
   try {
-    await updateOrderStatusService(req.params.id, req.body.status);
+    await updateOrderStatusService(req.params.id, req.body.status, req.user.email);
     res.status(200).json({ message: `Order marked as ${req.body.status}` });
   } catch (err: any) {
     res

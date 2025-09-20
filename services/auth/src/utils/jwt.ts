@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { AppError } from "@logitrack/shared";
-import { Role } from "../models/user.model";
 import { config } from "@logitrack/config";
+import { Role } from "../types/user";
 
 const { secret, refreshTokenSecret } = config.jwt;
 

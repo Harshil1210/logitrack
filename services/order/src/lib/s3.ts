@@ -6,16 +6,13 @@ import {
 } from "@aws-sdk/client-s3";
 import { config } from "@logitrack/config";
 
-const bucketName = config.s3.bucketName;
-const accessKeyId = config.s3.accessKey;
-const secretAccessKey = config.s3.secretKey;
-const region = config.s3.region;
+const { region, accessKey, secretKey, bucketName } = config.s3;
 
 export const s3Client = new S3Client({
   region: region,
   credentials: {
-    accessKeyId: accessKeyId,
-    secretAccessKey: secretAccessKey,
+    accessKeyId: accessKey,
+    secretAccessKey: secretKey,
   },
 });
 

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.848.0",
+    "@aws-sdk/client-sqs": "^3.893.0",
     "@logitrack/config": "workspace:*",
     "@logitrack/shared": "workspace:*",
     "aws-sdk": "^2.1692.0",

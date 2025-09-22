@@ -1,0 +1,22 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/auth/*.log
+    - /var/log/order/*.log
+    - /var/log/notification/*.log
+    - /var/log/gateway/*.log
+  json.keys_under_root: true
+  json.add_error_key: true
+  fields:
+    logtype: microservice
+  fields_under_root: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "logitrack-logs-%{+yyyy.MM.dd}"
+
+setup.template.name: "logitrack"
+setup.template.pattern: "logitrack-logs-*"
+
+logging.level: info

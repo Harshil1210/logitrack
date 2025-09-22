@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiTrack Real-time Updates</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+
+<body>
+    <h1>LogiTrack Real-time Dashboard</h1>
+
+    <div id="connection-status">Connecting...</div>
+
+    <h2>Order Updates</h2>
+    <div id="order-updates"></div>
+
+    <h2>Upload Progress</h2>
+    <div id="upload-progress"></div>
+
+    <h2>Controls</h2>
+    <button onclick="joinUserRoom()">Join User Room</button>
+    <button onclick="joinAdminRoom()">Join Admin Room</button>
+    <button onclick="testBroadcast()">Test Broadcast</button>
+
+    <script>
+        const socket = io('http://localhost:3002');
+
+        socket.on('connect', () => {
+            document.getElementById('connection-status').innerHTML =
+                '<span style="color: green;">✅ Connected</span>';
+            console.log('Connected to WebSocket server');
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').innerHTML =
+                '<span style="color: red;">❌ Disconnected</span>';
+        });
+
+        socket.on('order-status-update', (data) => {
+            const updates = document.getElementById('order-updates');
+            const update = document.createElement('div');
+            update.innerHTML = `
+                <p><strong>${new Date().toLocaleTimeString()}</strong> - 
+                Order ${data.orderId}: ${data.status} - ${data.message}</p>
+            `;
+            updates.insertBefore(update, updates.firstChild);
+        });
+
+        socket.on('upload-progress', (data) => {
+            const progress = document.getElementById('upload-progress');
+            const update = document.createElement('div');
+            update.innerHTML = `
+                <p><strong>${data.filename}</strong>: ${data.progress}% - ${data.status}</p>
+            `;
+            progress.insertBefore(update, progress.firstChild);
+        });
+
+        function joinUserRoom() {
+            socket.emit('join-room', 'user:123');
+            console.log('Joined user room');
+        }
+
+        function joinAdminRoom() {
+            socket.emit('join-room', 'admin');
+            console.log('Joined admin room');
+        }
+
+        function testBroadcast() {
+            fetch('http://localhost:3002/ws/test-broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ event: 'order-update', data: {} })
+            });
+        }
+    </script>
+</body>
+
+</html>

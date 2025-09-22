@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Infrastructure
+  mongodb:
+    image: mongo:7.0
+    container_name: logitrack-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - logitrack-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: logitrack-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - logitrack-network
+
+  # Services
+  auth-service:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    container_name: logitrack-auth
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_AUTH_URL=mongodb://admin:password@mongodb:27017/logitrack_auth?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - logitrack-network
+    volumes:
+      - ./services/auth/logs:/app/logs
+
+  order-service:
+    build:
+      context: ./services/order
+      dockerfile: Dockerfile
+    container_name: logitrack-order
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_ORDER_URL=mongodb://admin:password@mongodb:27017/logitrack_orders?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - logitrack-network
+    volumes:
+      - ./services/order/logs:/app/logs
+
+  notification-service:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+    container_name: logitrack-notification
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - SQS_QUEUE_URL=${SQS_QUEUE_URL}
+      - SQS_ACCESS_KEY=${SQS_ACCESS_KEY}
+      - SQS_SECRET_KEY=${SQS_SECRET_KEY}
+      - SQS_REGION=${SQS_REGION}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    depends_on:
+      - redis
+    networks:
+      - logitrack-network
+    volumes:
+      - ./services/notification/logs:/app/logs
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: logitrack-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - ORDER_SERVICE_URL=http://order-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+    depends_on:
+      - auth-service
+      - order-service
+      - notification-service
+      - redis
+    networks:
+      - logitrack-network
+    volumes:
+      - ./services/api-gateway/logs:/app/logs
+
+networks:
+  logitrack-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:

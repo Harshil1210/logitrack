@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import * as AuthService from "../services/auth.service";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
+import { generateTokenWithSession, logoutUser } from "../services/authService";
 import { config } from "@logitrack/config";
 
 const nodeEnv = config.nodeEnv
@@ -35,6 +36,13 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
+    // Generate token with Redis session
+    const sessionData = await generateTokenWithSession({
+      _id: data.user._id,
+      email: data.user.email,
+      role: data.user.role
+    });
+
     res.cookie("refresh_token", data.refreshToken, {
       httpOnly: true,
       secure: nodeEnv === "production",
@@ -42,8 +50,16 @@ export const login = async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 1000,
     });
 
+    res.cookie("session_id", sessionData.sessionId, {
+      httpOnly: true,
+      secure: nodeEnv === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 1000,
+    });
+
     res.status(200).json({
-      accessToken: data.accessToken,
+      accessToken: sessionData.token,
+      sessionId: sessionData.sessionId
     });
   } catch (err: any) {
     res.status(400).json({ err: err.message });
@@ -96,11 +112,27 @@ export const googleCallbackHandler = (
 };
 
 export const logoutHandler = async (req: Request, res: Response) => {
-  res.clearCookie("refresh_token", {
-    httpOnly: true,
-    secure: nodeEnv === "production",
-    sameSite: "strict",
-  });
+  try {
+    const sessionId = req.cookies.session_id;
+    
+    if (sessionId) {
+      await logoutUser(sessionId);
+    }
+    
+    res.clearCookie("refresh_token", {
+      httpOnly: true,
+      secure: nodeEnv === "production",
+      sameSite: "strict",
+    });
+    
+    res.clearCookie("session_id", {
+      httpOnly: true,
+      secure: nodeEnv === "production",
+      sameSite: "strict",
+    });
 
-  res.status(200).json({ message: "Logout successful" });
+    res.status(200).json({ message: "Logout successful" });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
 };

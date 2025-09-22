@@ -1,7 +1,14 @@
+import express from "express";
 import { ReceiveMessageCommand } from "@aws-sdk/client-sqs";
 import { config } from "@logitrack/config";
 import { client } from "./lib/sqs";
 import { processOrderNotification } from "./services/orderNotificationHandler";
+import { createLogger, requestLogger } from "@logitrack/shared";
+
+const logger = createLogger('notification-service');
+const app = express();
+
+const port = config.ports.notification;
 
 const queueUrl = config.sqs.queueUrl;
 
@@ -22,25 +29,39 @@ async function pullMessage() {
       }
     }
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        level: "ERROR",
-        message: "Failed to pull SQS message",
-        error: error instanceof Error ? error.message : error,
-      })
-    );
+    logger.error('Failed to pull SQS message', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
   }
 }
 
-async function startService() {
-  console.log(
-    JSON.stringify({
-      level: "INFO",
-      message: "Starting notification service",
-      port: config.ports.notification,
-    })
-  );
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    service: "Notification Service",
+    version: "1.0.0",
+    description: "Handles email notifications via SQS queue processing",
+    endpoints: ["/"],
+    status: "running",
+    queueStatus: "polling"
+  });
+});
 
+app.use(requestLogger('notification-service'));
+
+async function startService() {
+  // Start Express server
+  app.listen(port, () => {
+    logger.info('Notification Service ready', {
+      port,
+      url: `http://localhost:${port}`,
+      queueUrl: config.sqs.queueUrl
+    });
+  });
+
+  // Start SQS polling
+  logger.info('Starting SQS message polling', { interval: '5s' });
   setInterval(() => {
     pullMessage()
   }, 5000);

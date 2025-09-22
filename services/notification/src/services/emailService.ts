@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
 import { config } from '@logitrack/config';
 import { OrderUpdateEvent } from '../types/orderEvent';
+import { createLogger } from '@logitrack/shared';
+
+const logger = createLogger('notification-service');
 
 const transporter = nodemailer.createTransport({
   host: config.smtp.host,
@@ -52,20 +55,19 @@ export const sendOrderNotification = async (event: OrderUpdateEvent): Promise<vo
       html: template.html,
     });
 
-    console.log(JSON.stringify({
-      level: 'INFO',
-      message: 'Order notification sent',
+    logger.info('Order notification sent', {
       orderId: event.orderId,
       status: event.status,
-      userEmail: event.userEmail
-    }));
+      userEmail: event.userEmail,
+      subject: template.subject
+    });
   } catch (error) {
-    console.error(JSON.stringify({
-      level: 'ERROR',
-      message: 'Failed to send order notification',
+    logger.error('Failed to send order notification', {
       orderId: event.orderId,
-      error: error instanceof Error ? error.message : error
-    }));
+      userEmail: event.userEmail,
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined
+    });
     throw error;
   }
 };

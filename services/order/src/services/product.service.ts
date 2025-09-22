@@ -3,7 +3,7 @@ import { productDto } from "../dto/product.dto";
 import { deleteFileFromS3 } from "../utils/s3.utils";
 import { CreateProductWithFile } from "../types/types";
 
-import { AppError } from "@logitrack/shared";
+import { AppError, cacheProduct, getCachedProduct, deleteCache } from "@logitrack/shared";
 import { config } from "@logitrack/config";
 
 const bucketName = config.s3.bucketName;
@@ -37,6 +37,9 @@ export const createProductService = async ({
     stock,
     imageUrl: fileKey,
   });
+
+  // Cache the new product
+  await cacheProduct(newProduct._id.toString(), newProduct);
 
   return newProduct;
 };
@@ -86,18 +89,43 @@ export const updateProductService = async (
     { new: true }
   );
 
+  // Update cache
+  if (updatedProduct) {
+    await cacheProduct(productId, updatedProduct);
+  }
+
   return updatedProduct;
 };
 
 export const getAllProductsService = async () => {
+  // Check cache first
+  const cachedProducts = await getCachedProduct('all-products');
+  if (cachedProducts) {
+    return cachedProducts;
+  }
+
+  // Fetch from DB and cache
   const products = await productModel.find();
+  await cacheProduct('all-products', products);
+  
   return products;
 };
 
 export const getProductByIdService = async (productId: string) => {
+  // Check cache first
+  const cachedProduct = await getCachedProduct(productId);
+  if (cachedProduct) {
+    return cachedProduct;
+  }
+
+  // Fetch from DB
   const product = await productModel.findById(productId);
   if (!product) {
     throw new AppError("Product not found", 404);
   }
+
+  // Cache the product
+  await cacheProduct(productId, product);
+  
   return product;
 };

@@ -1,0 +1,20 @@
+docker-compose -f docker-compose.dev.yml up -d
+# Run services locally, use containerized DB/Redis
+
+docker-compose up -d
+# All services containerized
+
+# Quick start
+docker-compose up -d
+
+# View status
+docker-compose ps
+
+# Scale services
+docker-compose up -d --scale order-service=3
+
+# View logs
+docker-compose logs -f order-service
+
+# Stop everything
+docker-compose down
